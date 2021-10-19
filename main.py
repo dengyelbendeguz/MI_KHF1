@@ -1,30 +1,5 @@
-# MINTA:
-##############################################################################################################
-# p    ....................................................azon pontpárok száma, melyek közt utat kell keresni
-# n    ................................................az úthálózat kereszteződéseinek (vagy csúcsainak) száma
-# e    ......................................................................az úthálózat útszakaszainak száma
-# [üres sor]
-# kiinduló kereszteződés id [tab] célkereszteződés id                                               ^
-# kiinduló kereszteződés id [tab] célkereszteződés id                                               |
-# kiinduló kereszteződés id [tab] célkereszteződés id                                               | p db sor
-# kiinduló kereszteződés id [tab] célkereszteződés id                                               |
-# kiinduló kereszteződés id [tab] célkereszteződés id                                               ˇ
-# [üres sor]
-# 0. kereszteződés x koordinátája [tab] kereszteződés y koordinátája                                ^
-# 1. kereszteződés x koordinátája [tab] kereszteződés y koordinátája                                |
-# 2. kereszteződés x koordinátája [tab] kereszteződés y koordinátája                                |
-# 3. kereszteződés x koordinátája [tab] kereszteződés y koordinátája                                | n db sor
-# 4. kereszteződés x koordinátája [tab] kereszteződés y koordinátája                                |
-# ...                                                                                               |
-# n. kereszteződés x koordinátája [tab] kereszteződés y koordinátája                                ˇ
-# [üres sor]
-# az adott útszakasz egyik kereszteződés id-je [tab] az adott útszakasz másik kereszteződés id-je   ^
-# az adott útszakasz egyik kereszteződés id-je [tab] az adott útszakasz másik kereszteződés id-je   |
-# az adott útszakasz egyik kereszteződés id-je [tab] az adott útszakasz másik kereszteződés id-je   | e db sor
-# az adott útszakasz egyik kereszteződés id-je [tab] az adott útszakasz másik kereszteződés id-je   ˇ
-##############################################################################################################
-# MINTA VÉGE
 import math
+
 
 class Point:
     def __init__(self, p_id, x, y):
@@ -33,7 +8,8 @@ class Point:
         self.y_coordinate = int(y)
 
     def printPoint(self):
-        print("P id , x, y: " + str(self.p_id) + ", " + str(self.x_coordinate) + ", " + str(self.y_coordinate))
+        print("\t\t[NODE] id: ", str(self.p_id),", x: ", str(self.x_coordinate), ", y: ", str(self.y_coordinate))
+
 
 class Edge:
     def __init__(self, e_id, startPoint, endPoint):
@@ -44,29 +20,101 @@ class Edge:
                                 + pow((self.startPoint.y_coordinate - self.endPoint.y_coordinate), 2))
 
     def printEdge(self):
-        print("\nE id, length, P1, P2: ")
-        print(self.e_id)
-        print(self.length)
+        print("\n\t[EDGE] id: ", self.e_id, ", length: ",self.length)
         self.startPoint.printPoint()
         self.endPoint.printPoint()
+
 
 class Route:
     def __init__(self, r_id, start, destination):
         self.r_id = r_id
         self.start = start
         self.destination = destination
+        self.sumOfUsedEdgesLength = 0
 
     def printRoute(self):
-        print("\nR id, start, dest: ")
-        print(self.r_id)
+        print("\n\t[ROUTE] id: ", self.r_id)
         self.start.printPoint()
         self.destination.printPoint()
 
     def findingShortestPath(self):
-        # TODO this is the point of the whole task
-        pass
+        print("\n\n\n\n[PATHFINDER STARTS]")
+        edgesOfOptimalPath = []
+        optimalPathNotFound = True
+        currentNode = self.start
+        print("[CURRENT NODE]]:")
+        print(currentNode.printPoint())
+        while optimalPathNotFound:
+            if self.heuristic(currentNode) == 0:
+                optimalPathNotFound = False
+            connectedEdges = self.findConnectedEdges(self.start)
+            selectedEdge = self.selectNextEdge(connectedEdges, currentNode)
+            edgesOfOptimalPath.append(selectedEdge)
+            _currentNode = selectedEdge.endPoint if currentNode != selectedEdge.endPoint else selectedEdge.startPoint
+            currentNode = _currentNode
+            print("[CURRENT NODE]]:")
+            print(currentNode.printPoint())
+
+        sumOfEdgesInPath = 0
+        for edge in edgesOfOptimalPath:
+            sumOfEdgesInPath += edge.length
+        main.optimalLengthOrRoutes.append("{:.2f}".format(sumOfEdgesInPath))
+        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX[PATH FOUND]XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+
+    def heuristic(self, currentNode):
+        return math.sqrt(pow((currentNode.x_coordinate - self.destination.x_coordinate), 2)
+                         + pow((currentNode.y_coordinate - self.destination.y_coordinate), 2))
+
+    def findConnectedEdges(self, sourceNode):
+        connectedEdges = []
+        for edge in main.edges:
+            if edge.startPoint == sourceNode or edge.endPoint == sourceNode:
+                connectedEdges.append(edge)
+
+        print("\t[CONNECTED EDGES]]: ")
+        for item in connectedEdges:
+            item.printEdge()
+        return connectedEdges
+
+    def selectNextEdge(self, edges, currentNode):
+        if len(edges) == 0:
+            return
+        lowestEdgeTotalCost = None
+        selectedEdge = None
+        for edge in edges:
+            endNode = edge.endPoint if edge.endPoint != currentNode else edge.startPoint
+            currentCost = self.sumOfUsedEdgesLength + edge.length + self.heuristic(endNode)
+            if lowestEdgeTotalCost is None or currentCost < lowestEdgeTotalCost:
+                lowestEdgeTotalCost = currentCost
+                selectedEdge = edge
+
+        self.sumOfUsedEdgesLength += selectedEdge.length
+        print("\t[SELECTED EDGE]: ")
+        print(selectedEdge.printEdge())
+        return selectedEdge
+
 
 class Main:
+    _instances = {}
+
+    def __call__(cls, *args, **kwargs):
+        if cls not in cls._instances:
+            instance = super().__call__(*args, **kwargs)
+            cls._instances[cls] = instance
+        return cls._instances[cls]
+
     def __init__(self):
         self.p = 0
         self.n = 0
@@ -77,6 +125,7 @@ class Main:
         self.points = []
         self.edges = []
         self.routes = []
+        self.optimalLengthOrRoutes = []
 
     def readInput(self):
         keepReading = True
@@ -156,48 +205,48 @@ class Main:
             destination = self.points[int(self.p_routes[item][2])]
             self.routes.append(Route(r_id, start, destination))
 
+    def pesantDebug(self):
+        print("\np: ", str(main.p))
+        print("n: ", str(main.n))
+        print("e: ", str(main.e))
+        print("\np_routes:")
+        print(main.p_routes)
+        print("\nn_coords:")
+        print(main.n_coords)
+        print("\ne_edges:")
+        print(main.e_edges)
+        print("\n\n[NODES]")
+        for item in main.points:
+            item.printPoint()
+        print("\n\n[EDGES]")
+        for item in main.edges:
+            item.printEdge()
+        print("\n\n[ROUTES]")
+        for item in main.routes:
+            item.printRoute()
+        print("#######################################################################################################")
+
+    def findBestRoutes(self):
+        for route in self.routes:
+            route.findingShortestPath()
+        self.printResults()
+
+    def printResults(self):
+        print("#######################################################################################################")
+        print("\n[RESULT]")
+        print(*self.optimalLengthOrRoutes, sep='\t')
+
 ########################################################################################################################
-########################################################################################################################
+###########################   MM MM     A     I   NN  N   ##############################################################
+###########################   M M M    AAA    I   N N N   ##############################################################
+###########################   M   M   A   A   I   N  NN   ##############################################################
 ########################################################################################################################
 
 
 main = Main()
 main.readInput()  # reads and processes input
 main.setClasses()  # set the Point, Edge, and Route class collections
-
-# FOR TESTING INPUT, AND INPUT PROCESSING:
-#
-# Input:
-#
-# 2
-# 3
-# 3
-#
-# 0	2
-# 1	2
-#
-# 2	0
-# -4	1
-# 6	3
-#
-# 1	0
-# 1	2
-# 0	2
-#
-# "test functions":
-#
-# print("\np: " + str(main.p))
-# print("n: " + str(main.n))
-# print("e: " + str(main.e))
-# print("p_routes:")
-# print(main.p_routes)
-# print("n_coords:")
-# print(main.n_coords)
-# print("e_edges:")
-# print(main.e_edges)
-# for item in main.points:
-#     item.printPoint()
-# for item in main.edges:
-#     item.printEdge()
-# for item in main.routes:
-#     item.printRoute()
+main.pesantDebug()  # prints arrays, class collections
+# TODO: LASSÚ!!!(és hibás)
+main.findBestRoutes()  # optimal route finding
+# TODO: a végén fölös printeket/ kiíratásokat törölni, de előtte egy másolatot csinálni
