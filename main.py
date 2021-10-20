@@ -6,9 +6,24 @@ class Point:
         self.p_id = int(p_id)
         self.x_coordinate = int(x)
         self.y_coordinate = int(y)
+        self.neighbourNodes = set()
+        self.neighbourEdges = set()
 
     def printPoint(self):
-        print("\t\t[NODE] id: ", str(self.p_id),", x: ", str(self.x_coordinate), ", y: ", str(self.y_coordinate))
+        return f"[NODE] id: {self.p_id}, x: {self.x_coordinate}, y: {self.y_coordinate}"
+
+    def addNeighbourNode(self, neighbourNode):
+        self.neighbourNodes.add(neighbourNode)
+
+    def addNeighbourEdge(self, neighbourEdge):
+        self.neighbourEdges.add(neighbourEdge)
+
+    def printNeighbours(self):
+        print(f"[NEIGHBOURS]\t{self.printPoint()}")
+        for neighbour in self.neighbourNodes:
+            print(f"\t{neighbour.printPoint()}")
+        for neighbour in self.neighbourEdges:
+            print(f"\t{neighbour.printEdge()}")
 
 
 class Edge:
@@ -20,9 +35,7 @@ class Edge:
                                 + pow((self.startPoint.y_coordinate - self.endPoint.y_coordinate), 2))
 
     def printEdge(self):
-        print("\n\t[EDGE] id: ", self.e_id, ", length: ",self.length)
-        self.startPoint.printPoint()
-        self.endPoint.printPoint()
+        return f"[EDGE] id: {self.e_id}, length: {self.length}\n\t\t{self.startPoint.printPoint()}\n\t\t{self.endPoint.printPoint()}"
 
 
 class Route:
@@ -31,64 +44,35 @@ class Route:
         self.start = start
         self.destination = destination
         self.sumOfUsedEdgesLength = 0
+        self.usedEdges = set()  # every edge used once goes here
+        self.forbiddenEdges = set()  # every edge used twice goes here
 
     def printRoute(self):
-        print("\n\t[ROUTE] id: ", self.r_id)
-        self.start.printPoint()
-        self.destination.printPoint()
+        return f"[ROUTE] id: {self.r_id}\n\t{self.start.printPoint()}\n\t{self.destination.printPoint()}"
 
     def findingShortestPath(self):
-        print("\n\n\n\n[PATHFINDER STARTS]")
-        edgesOfOptimalPath = []
+        print("\n[PATHFINDER STARTS]##################################################################################")
         optimalPathNotFound = True
         currentNode = self.start
-        print("[CURRENT NODE]]:")
-        print(currentNode.printPoint())
+        print(f"[START NODE]]: {currentNode.printPoint()}")
         while optimalPathNotFound:
             if self.heuristic(currentNode) == 0:
                 optimalPathNotFound = False
-            connectedEdges = self.findConnectedEdges(self.start)
-            selectedEdge = self.selectNextEdge(connectedEdges, currentNode)
-            edgesOfOptimalPath.append(selectedEdge)
+            selectedEdge = self.selectNextEdge(currentNode)
             _currentNode = selectedEdge.endPoint if currentNode != selectedEdge.endPoint else selectedEdge.startPoint
             currentNode = _currentNode
-            print("[CURRENT NODE]]:")
-            print(currentNode.printPoint())
+            print(f"[CURRENT NODE]]: {currentNode.printPoint()}")
 
-        sumOfEdgesInPath = 0
-        for edge in edgesOfOptimalPath:
-            sumOfEdgesInPath += edge.length
-        main.optimalLengthOrRoutes.append("{:.2f}".format(sumOfEdgesInPath))
-        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
-        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
-        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
-        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
-        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
-        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
-        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX[PATH FOUND]XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
-        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
-        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
-        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
-        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
-        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
-        print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+        for edge in self.usedEdges:
+            self.sumOfUsedEdgesLength += edge.length
+        main.optimalLengthOrRoutes.append("{:.2f}".format(self.sumOfUsedEdgesLength))
 
     def heuristic(self, currentNode):
         return math.sqrt(pow((currentNode.x_coordinate - self.destination.x_coordinate), 2)
                          + pow((currentNode.y_coordinate - self.destination.y_coordinate), 2))
 
-    def findConnectedEdges(self, sourceNode):
-        connectedEdges = []
-        for edge in main.edges:
-            if edge.startPoint == sourceNode or edge.endPoint == sourceNode:
-                connectedEdges.append(edge)
-
-        print("\t[CONNECTED EDGES]]: ")
-        for item in connectedEdges:
-            item.printEdge()
-        return connectedEdges
-
-    def selectNextEdge(self, edges, currentNode):
+    def selectNextEdge(self, currentNode):
+        edges = currentNode.neighbourEdges
         if len(edges) == 0:
             return
         lowestEdgeTotalCost = None
@@ -97,12 +81,28 @@ class Route:
             endNode = edge.endPoint if edge.endPoint != currentNode else edge.startPoint
             currentCost = self.sumOfUsedEdgesLength + edge.length + self.heuristic(endNode)
             if lowestEdgeTotalCost is None or currentCost < lowestEdgeTotalCost:
-                lowestEdgeTotalCost = currentCost
-                selectedEdge = edge
+                if edge in self.forbiddenEdges:
+                    pass
+                else:
+                    if edge in self.usedEdges:
+                        self.forbiddenEdges.add(edge)
+                        self.usedEdges.remove(edge)
+                    else:
+                        self.usedEdges.add(edge)
+                        lowestEdgeTotalCost = currentCost
+                        selectedEdge = edge
+
+        # TODO: üres usedEdges-nél beszarik; Mit csináljak, ha nincs semmilyen used edge?
+        # if selectedEdge is None:
+        #     if self.usedEdges:
+        #         selectedEdge = self.usedEdges.pop()
+        #         self.forbiddenEdges.add(selectedEdge)
 
         self.sumOfUsedEdgesLength += selectedEdge.length
-        print("\t[SELECTED EDGE]: ")
-        print(selectedEdge.printEdge())
+        print("[CONNECTED EDGES]]: ")
+        for item in edges:
+            print(f"\t{item.printEdge()}")
+        print(f"[SELECTED EDGE]:\n\t{selectedEdge.printEdge()}")
         return selectedEdge
 
 
@@ -196,7 +196,12 @@ class Main:
             e_id = self.e_edges[item][0]
             start_p = self.points[int(self.e_edges[item][1])]
             end_p = self.points[int(self.e_edges[item][2])]
-            self.edges.append(Edge(e_id, start_p, end_p))
+            start_p.addNeighbourNode(end_p)
+            end_p.addNeighbourNode(start_p)
+            edge = Edge(e_id, start_p, end_p)
+            self.edges.append(edge)
+            start_p.addNeighbourEdge(edge)
+            end_p.addNeighbourEdge(edge)
 
     def setRoutes(self):
         for item in range(len(self.p_routes)):
@@ -217,14 +222,13 @@ class Main:
         print(main.e_edges)
         print("\n\n[NODES]")
         for item in main.points:
-            item.printPoint()
+            item.printNeighbours()
         print("\n\n[EDGES]")
         for item in main.edges:
-            item.printEdge()
+            print(item.printEdge())
         print("\n\n[ROUTES]")
         for item in main.routes:
-            item.printRoute()
-        print("#######################################################################################################")
+            print(item.printRoute())
 
     def findBestRoutes(self):
         for route in self.routes:
@@ -232,8 +236,7 @@ class Main:
         self.printResults()
 
     def printResults(self):
-        print("#######################################################################################################")
-        print("\n[RESULT]")
+        print("\n[RESULT]#############################################################################################")
         print(*self.optimalLengthOrRoutes, sep='\t')
 
 ########################################################################################################################
@@ -247,6 +250,5 @@ main = Main()
 main.readInput()  # reads and processes input
 main.setClasses()  # set the Point, Edge, and Route class collections
 main.pesantDebug()  # prints arrays, class collections
-# TODO: LASSÚ!!!(és hibás)
 main.findBestRoutes()  # optimal route finding
-# TODO: a végén fölös printeket/ kiíratásokat törölni, de előtte egy másolatot csinálni
+# TODO: a végén fölös printeket/ kiíratásokat törölni, de előtte egy másolatot csinálni, GitHub save
