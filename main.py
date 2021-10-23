@@ -13,6 +13,12 @@ class Point:
         self.h = 0  # heuristic: distance from destination point
         self.g = 0  # distance between current node and start node (the sum of the paths length)
 
+    def __eq__(self, other):
+        return self.x_coordinate == other.x_coordinate and self.y_coordinate == other.y_coordinate
+
+    def __hash__(self):
+        return hash((self.x_coordinate, self.y_coordinate))
+
     def printPoint(self):
         return f"[NODE] id: {self.p_id}, x: {self.x_coordinate}, y: {self.y_coordinate}"
 
@@ -43,119 +49,108 @@ class Edge:
 
 
 class Route:
-    # todo: szülő eltérolása, f,h,g értékek is
     def __init__(self, r_id, start, destination):
         self.r_id = r_id
         self.start = start
         self.destination = destination
-        self.openNodes = set()
-        self.closedNodes = set()
+        self.openNodes = []
+        self.closedNodes = []
         self.pathNodes = set()
+        self.optimalPathLength = 0
+
+    def resetNodes(self):
+        for node in main.points:
+            node.f = node.g = node.h = 0
+            node.parent = None
 
     def printRoute(self):
         return f"[ROUTE] id: {self.r_id}\n\t{self.start.printPoint()}\n\t{self.destination.printPoint()}"
 
-    def heuristic(self, currentNode):
-        return math.sqrt(pow((currentNode.x_coordinate - self.destination.x_coordinate), 2)
-                         + pow((currentNode.y_coordinate - self.destination.y_coordinate), 2))
-
     def findingShortestPath(self):
-        self.start.f = self.start.g = self.heuristic(self.start)
-        self.openNodes.add(self.start)
+        print("\n\n\n\n[SEARCH STARTED]XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+        self.resetNodes()  # reset node metrics before starting the path searching
 
-        searchInProgress = True
-        while searchInProgress:
-            currentNode = self.findLowestF()  #find loves f node
-            self.closedNodes.add(currentNode)   #put it into the closed nodes
+        self.start.g = self.findG(self.start)
+        self.start.f = self.start.g + self.heuristic(self.start)
+        self.openNodes.append(self.start)
+        # currentNode = self.findLowestF(self.start) # only for the first iteration
+
+        iteration = 1
+        # print(f"open nodes size at {iteration}. iteration:{len(self.openNodes)}")
+
+        while self.destination not in self.closedNodes and len(self.openNodes) > 0:
+            # currentNode = self.findLowestF(currentNode)
+            currentNode = self.findLowestF()
+
+            # print(f"current node:{currentNode.printPoint()}")
+            iteration += 1
+            # print(f"open nodes size at {iteration}. iteration:{len(self.openNodes)}")
+
+            self.closedNodes.append(currentNode)
+            nodeIndex = self.openNodes.index(currentNode)
+            self.openNodes.pop(nodeIndex)
+
             for neighbourNode in currentNode.neighbourNodes:
+                if neighbourNode in self.closedNodes:
+                    continue
                 if neighbourNode not in self.openNodes:
-                    self.openNodes.add(neighbourNode)
+                    self.openNodes.append(neighbourNode)
                     neighbourNode.parent = currentNode
                     neighbourNode.h = self.heuristic(neighbourNode)
                     neighbourNode.g = self.findG(neighbourNode)
                     neighbourNode.f = neighbourNode.h + neighbourNode.g
                 if neighbourNode in self.openNodes:
+                    oldParent = neighbourNode.parent
+                    neighbourNode.parent = currentNode
                     tmpG = self.findG(neighbourNode)
                     if tmpG < neighbourNode.g:
-                        neighbourNode.parent = currentNode
+                        # neighbourNode.parent = currentNode
                         neighbourNode.g = tmpG
                         neighbourNode.f = neighbourNode.g + neighbourNode.h
-            if self.destination in self.closedNodes or len(self.openNodes) == 0:
-                searchInProgress = False
+                    else:
+                        neighbourNode.parent = oldParent
+        self.savePath()
 
-        saveInProgress = True
-        while saveInProgress:
-
-
-
+    def heuristic(self, currentNode):
+        return math.sqrt(pow((currentNode.x_coordinate - self.destination.x_coordinate), 2)
+                         + pow((currentNode.y_coordinate - self.destination.y_coordinate), 2))
 
     def findLowestF(self):
-        lowestF = self.start.f
-        chosenNode = self.start
+        # lowestF = currentNode.f
+        # chosenNode = currentNode
+        lowestF = self.openNodes[0].f
+        chosenNode = self.openNodes[0]
         for node in self.openNodes:
             if node.f < lowestF:
                 lowestF = node.f
                 chosenNode = node
+        # print(f"lowest f:{chosenNode.printPoint()}")
         return chosenNode
 
     def findG(self, node):
-        parentNotFound = True
-        while parentNotFound:
-            # TODO: implement it XD
+        g = 0
+        currentNode = node
+        while currentNode.parent is not None:
+            edge = self.findEdge(currentNode, currentNode.parent)
+            g += edge.length
+            currentNode = currentNode.parent
+        return g
 
+    def findEdge(self, startNode, endNode):
+        for edge in startNode.neighbourEdges:
+            if edge.startPoint == startNode and edge.endPoint == endNode or edge.endPoint == startNode and edge.startPoint == endNode:
+                # print(f"edge fund:{edge.printEdge()}")
+                return edge
 
-    # def findingShortestPath(self):
-    #     print("\n[PATHFINDER STARTS]##################################################################################")
-    #     optimalPathNotFound = True
-    #     currentNode = self.start
-    #     print(f"[START NODE]]: {currentNode.printPoint()}")
-    #     while optimalPathNotFound:
-    #         if self.heuristic(currentNode) == 0:
-    #             optimalPathNotFound = False
-    #         selectedEdge = self.selectNextEdge(currentNode)
-    #         _currentNode = selectedEdge.endPoint if currentNode != selectedEdge.endPoint else selectedEdge.startPoint
-    #         currentNode = _currentNode
-    #         print(f"[CURRENT NODE]]: {currentNode.printPoint()}")
-    #
-    #     for edge in self.usedEdges:
-    #         self.sumOfUsedEdgesLength += edge.length
-    #     main.optimalLengthOrRoutes.append("{:.2f}".format(self.sumOfUsedEdgesLength))
-    #
-    #
-    #
-    # def selectNextEdge(self, currentNode):
-    #     edges = currentNode.neighbourEdges
-    #     if len(edges) == 0:
-    #         return
-    #     lowestEdgeTotalCost = None
-    #     selectedEdge = None
-    #     for edge in edges:
-    #         endNode = edge.endPoint if edge.endPoint != currentNode else edge.startPoint
-    #         currentCost = self.sumOfUsedEdgesLength + edge.length + self.heuristic(endNode)
-    #         if lowestEdgeTotalCost is None or currentCost < lowestEdgeTotalCost:
-    #             if edge in self.forbiddenEdges:
-    #                 pass
-    #             else:
-    #                 if edge in self.usedEdges:
-    #                     self.forbiddenEdges.add(edge)
-    #                     self.usedEdges.remove(edge)
-    #                 else:
-    #                     self.usedEdges.add(edge)
-    #                     lowestEdgeTotalCost = currentCost
-    #                     selectedEdge = edge
-    #
-    #     # TODO: üres usedEdges-nél beszarik; Mit csináljak, ha nincs semmilyen used edge?
-    #     # if selectedEdge is None:
-    #     #     if self.usedEdges:
-    #     #         selectedEdge = self.usedEdges.pop()
-    #     #         self.forbiddenEdges.add(selectedEdge)
-    #
-    #     self.sumOfUsedEdgesLength += selectedEdge.length
-    #     print("[CONNECTED EDGES]]: ")
-    #     for item in edges:
-    #         print(f"\t{item.printEdge()}")
-    #     print(f"[SELECTED EDGE]:\n\t{selectedEdge.printEdge()}")
-    #     return selectedEdge
+    def savePath(self):
+        if self.destination.parent is not None:
+            currentNode = self.destination
+            while currentNode.parent is not None:
+                self.pathNodes.add(currentNode)
+                currentNode = currentNode.parent
+            self.optimalPathLength = self.findG(self.destination)
+            # print(f"optimal length:{self.optimalPathLength}")
+        main.optimalLengthOfRoutes.append("{:.2f}".format(self.optimalPathLength))
 
 
 class Main:
@@ -177,7 +172,7 @@ class Main:
         self.points = []
         self.edges = []
         self.routes = []
-        self.optimalLengthOrRoutes = []
+        self.optimalLengthOfRoutes = []
 
     def readInput(self):
         keepReading = True
@@ -289,7 +284,9 @@ class Main:
 
     def printResults(self):
         print("\n[RESULT]#############################################################################################")
-        print(*self.optimalLengthOrRoutes, sep='\t')
+        print(*self.optimalLengthOfRoutes, sep='\t')
+        with open('output.txt', 'w') as f:
+            f.write('\t'.join(self.optimalLengthOfRoutes[1:]) + '\n')
 
 ########################################################################################################################
 ###########################   MM MM     A     I   NN  N   ##############################################################
@@ -301,6 +298,6 @@ class Main:
 main = Main()
 main.readInput()  # reads and processes input
 main.setClasses()  # set the Point, Edge, and Route class collections
-main.pesantDebug()  # prints arrays, class collections
+# main.pesantDebug()  # prints arrays, class collections
 main.findBestRoutes()  # optimal route finding
 # TODO: a végén fölös printeket/ kiíratásokat törölni, de előtte egy másolatot csinálni, GitHub save
