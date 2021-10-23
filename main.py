@@ -67,7 +67,7 @@ class Route:
         return f"[ROUTE] id: {self.r_id}\n\t{self.start.printPoint()}\n\t{self.destination.printPoint()}"
 
     def findingShortestPath(self):
-        print("\n\n\n\n[SEARCH STARTED]XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+        # print("\n\n\n\n[SEARCH STARTED]XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
         self.resetNodes()  # reset node metrics before starting the path searching
 
         self.start.g = self.findG(self.start)
@@ -283,10 +283,10 @@ class Main:
         self.printResults()
 
     def printResults(self):
-        print("\n[RESULT]#############################################################################################")
+        # print("\n[RESULT]#############################################################################################")
         print(*self.optimalLengthOfRoutes, sep='\t')
-        with open('output.txt', 'w') as f:
-            f.write('\t'.join(self.optimalLengthOfRoutes[1:]) + '\n')
+        # with open('output.txt', 'w') as f:
+        #     f.write('\t'.join(self.optimalLengthOfRoutes[1:]) + '\n')
 
 ########################################################################################################################
 ###########################   MM MM     A     I   NN  N   ##############################################################
